@@ -112,7 +112,7 @@ class BLEScannerApp(wx.App):
 class BLEScannerFrame(wx.Frame):
     """Main frame for the BLE Scanner application."""
     def __init__(self, parent, title):
-        super(BLEScannerFrame, self).__init__(parent, title=title, size=(800, 600))
+        super(BLEScannerFrame, self).__init__(parent, title=title, size=(876, 600))
         
         self.scanner_thread = None
         self.scanning = False
@@ -188,8 +188,8 @@ class BLEScannerFrame(wx.Frame):
         self.beacon_panel.SetSizer(beacon_sizer)
         
         # Add panels to notebook
-        self.notebook.AddPage(self.log_panel, "Scanner Log")
         self.notebook.AddPage(self.beacon_panel, "Detected Beacons")
+        self.notebook.AddPage(self.log_panel, "Scanner Log")
         
         main_sizer.Add(self.notebook, 1, wx.EXPAND | wx.ALL, 5)
         
