@@ -1,0 +1,42 @@
+device_detection_counts.json
+known_devices.json
+
+venv/
+kafka/kafka-data/
+dist/
+build/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+
+.gradle/
+.idea/
+.kotlin/
+.vscode/
+.DS_Store
+.env
+.env.local
+
+# Additional Python ignores
+__pycache__/
+*.egg-info/
+*.egg
+
+# Log files
+*.log
+
+# Local configuration
+**/local.properties
+
+# Android specific
+**/captures/
+**/.externalNativeBuild/
+**/.cxx/
+
+# IDE specific
+**/.settings/
+**/.classpath
+**/.project
+
