@@ -1,5 +1,6 @@
 device_detection_counts.json
 known_devices.json
+*.dmg
 
 venv/
 kafka/kafka-data/
