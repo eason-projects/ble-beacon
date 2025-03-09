@@ -1,11 +1,11 @@
 import wx
 from datetime import datetime
 
-class GradientPanel(wx.Panel):
-    """A panel with a background color based on RSSI value."""
+class ColorPanel(wx.Panel):
+    """A panel with a solid background color based on RSSI value."""
     
     def __init__(self, parent, *args, **kwargs):
-        super(GradientPanel, self).__init__(parent, *args, **kwargs)
+        super(ColorPanel, self).__init__(parent, *args, **kwargs)
         
         self.background_color = wx.Colour(0, 0, 0)  # Default black
         
@@ -18,7 +18,7 @@ class GradientPanel(wx.Panel):
         self.Refresh()  # Force a redraw
     
     def on_paint(self, event):
-        """Draw the background."""
+        """Draw the background with a solid color."""
         dc = wx.PaintDC(self)
         gc = wx.GraphicsContext.Create(dc)
         
@@ -44,6 +44,12 @@ class RSSIDisplayFrame(wx.Frame):
         self.selected_key = None
         self.current_rssi = None  # Track current RSSI value
         
+        # For smooth color transitions
+        self.target_color = wx.Colour(0, 0, 0)  # Target color to transition to
+        self.current_color = wx.Colour(0, 0, 0)  # Current displayed color
+        self.color_transition_steps = 10  # Number of steps for color transition
+        self.color_transition_current_step = 0  # Current step in the transition
+        
         self.panel = wx.Panel(self)
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -56,7 +62,7 @@ class RSSIDisplayFrame(wx.Frame):
         self.main_sizer.Add(device_sizer, 0, wx.EXPAND | wx.ALL, 5)
         
         # Create a fullscreen panel for displaying RSSI in fullscreen mode
-        self.fullscreen_panel = GradientPanel(self.panel)
+        self.fullscreen_panel = ColorPanel(self.panel)
         self.fullscreen_sizer = wx.BoxSizer(wx.VERTICAL)
         
         # RSSI value for fullscreen
@@ -122,8 +128,8 @@ class RSSIDisplayFrame(wx.Frame):
         rssi_container.Add(rssi_label, 0, wx.ALIGN_CENTER, 5)
         
         # Create a panel with background color for the RSSI value
-        self.rssi_bg_panel = wx.Panel(self.panel)
-        self.rssi_bg_panel.SetBackgroundColour(wx.Colour(0, 0, 0))  # Black background initially
+        self.rssi_bg_panel = ColorPanel(self.panel)
+        self.rssi_bg_panel.set_background_color(wx.Colour(0, 0, 0))  # Black background initially
         
         # Create a sizer for the background panel to center the RSSI value
         rssi_bg_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -350,47 +356,93 @@ class RSSIDisplayFrame(wx.Frame):
         # Normalize to 0.0 - 1.0
         normalized = (clamped_rssi - min_rssi) / (max_rssi - min_rssi)
         
-        # Create a color map:
-        # 0.0 (worst) -> Red (255, 0, 0)
-        # 0.33        -> Yellow (255, 255, 0)
-        # 0.66        -> Blue (0, 0, 255)
-        # 1.0 (best)  -> Green (0, 255, 0)
+        # Use HSV color space for smooth transitions
+        # Hue: 0 (red) for worst signal, through yellow, green, cyan, blue, to 240 (purple) for best signal
+        # This gives a much smoother transition through the color spectrum
+        hue = normalized * 240  # 0 to 240 degrees in HSV (red to purple)
+        saturation = 1.0        # Full saturation
+        value = 1.0             # Full brightness
         
-        if normalized <= 0.33:  # Red to Yellow
-            ratio = normalized / 0.33
-            r = 255
-            g = int(255 * ratio)
-            b = 0
-        elif normalized <= 0.66:  # Yellow to Blue
-            ratio = (normalized - 0.33) / 0.33
-            r = int(255 * (1 - ratio))
-            g = int(255 * (1 - ratio))
-            b = int(255 * ratio)
-        else:  # Blue to Green
-            ratio = (normalized - 0.66) / 0.34
-            r = 0
-            g = int(255 * (1 - ratio))
-            b = int(255 * ratio)
+        # Convert HSV to RGB
+        # Algorithm from https://en.wikipedia.org/wiki/HSL_and_HSV#HSV_to_RGB
+        c = value * saturation
+        x = c * (1 - abs((hue / 60) % 2 - 1))
+        m = value - c
+        
+        if 0 <= hue < 60:
+            r, g, b = c, x, 0
+        elif 60 <= hue < 120:
+            r, g, b = x, c, 0
+        elif 120 <= hue < 180:
+            r, g, b = 0, c, x
+        elif 180 <= hue < 240:
+            r, g, b = 0, x, c
+        elif 240 <= hue < 300:
+            r, g, b = x, 0, c
+        else:
+            r, g, b = c, 0, x
+        
+        # Convert to 0-255 range
+        r = int((r + m) * 255)
+        g = int((g + m) * 255)
+        b = int((b + m) * 255)
         
         return wx.Colour(r, g, b)
     
     def update_background_color(self):
         """Update the background color based on the current RSSI value."""
-        color = self.get_rssi_color()
+        # Get the target color based on RSSI
+        self.target_color = self.get_rssi_color()
         
-        # Update fullscreen panel color if in fullscreen mode
+        # If this is the first update, initialize current_color to target_color
+        if self.current_color == wx.Colour(0, 0, 0) and self.target_color != wx.Colour(0, 0, 0):
+            self.current_color = self.target_color
+        
+        # Reset the transition
+        self.color_transition_current_step = 0
+        
+        # Start the color transition timer if not already running
+        if not hasattr(self, 'color_timer') or not self.color_timer.IsRunning():
+            self.color_timer = wx.Timer(self)
+            self.Bind(wx.EVT_TIMER, self.update_color_transition, self.color_timer)
+            self.color_timer.Start(30)  # Update every 30ms for smooth transition
+    
+    def update_color_transition(self, event):
+        """Update the color transition animation."""
+        if self.color_transition_current_step >= self.color_transition_steps:
+            # Transition complete
+            self.color_timer.Stop()
+            self.current_color = self.target_color
+        else:
+            # Calculate interpolated color
+            r1, g1, b1 = self.current_color.Red(), self.current_color.Green(), self.current_color.Blue()
+            r2, g2, b2 = self.target_color.Red(), self.target_color.Green(), self.target_color.Blue()
+            
+            progress = (self.color_transition_current_step + 1) / self.color_transition_steps
+            
+            r = int(r1 + (r2 - r1) * progress)
+            g = int(g1 + (g2 - g1) * progress)
+            b = int(b1 + (b2 - b1) * progress)
+            
+            self.current_color = wx.Colour(r, g, b)
+            self.color_transition_current_step += 1
+        
+        # Apply the current color
         if self.is_fullscreen:
-            self.fullscreen_panel.set_background_color(color)
+            self.fullscreen_panel.set_background_color(self.current_color)
         
         # Always update the RSSI value background color in normal mode
-        self.rssi_bg_panel.SetBackgroundColour(color)
-        self.rssi_bg_panel.Refresh()  # Force a redraw
+        self.rssi_bg_panel.set_background_color(self.current_color)
     
     def on_close(self, event):
         """Handle the window closing event."""
         # Stop the timer
         if self.timer.IsRunning():
             self.timer.Stop()
+        
+        # Stop the color transition timer if it's running
+        if hasattr(self, 'color_timer') and self.color_timer.IsRunning():
+            self.color_timer.Stop()
         
         # Update the parent's reference to this window
         if hasattr(self.parent, 'rssi_display'):
