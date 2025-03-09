@@ -26,22 +26,36 @@ class RSSIDisplayFrame(wx.Frame):
         
         # RSSI value for fullscreen
         self.fullscreen_rssi = wx.StaticText(self.fullscreen_panel, label="N/A", 
-                                            style=wx.ALIGN_CENTER_HORIZONTAL)
+                                            style=wx.ALIGN_CENTER_HORIZONTAL | wx.ST_NO_AUTORESIZE)
         self.fullscreen_rssi.SetForegroundColour(wx.Colour(255, 255, 255))  # White text
         self.fullscreen_rssi.SetFont(wx.Font(120, wx.FONTFAMILY_DEFAULT, 
                                            wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
         
         # Last seen value for fullscreen
         self.fullscreen_last_seen = wx.StaticText(self.fullscreen_panel, label="N/A", 
-                                                style=wx.ALIGN_CENTER_HORIZONTAL)
+                                                style=wx.ALIGN_CENTER_HORIZONTAL | wx.ST_NO_AUTORESIZE)
         self.fullscreen_last_seen.SetForegroundColour(wx.Colour(255, 255, 255))  # White text
         self.fullscreen_last_seen.SetFont(wx.Font(40, wx.FONTFAMILY_DEFAULT, 
                                                wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
         
         # Add to fullscreen sizer with spacers to center vertically
         self.fullscreen_sizer.AddStretchSpacer(1)
-        self.fullscreen_sizer.Add(self.fullscreen_rssi, 0, wx.EXPAND | wx.ALL, 10)
-        self.fullscreen_sizer.Add(self.fullscreen_last_seen, 0, wx.EXPAND | wx.ALL, 10)
+        
+        # Create horizontal sizers for each text control to ensure center alignment
+        rssi_h_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        rssi_h_sizer.AddStretchSpacer(1)
+        rssi_h_sizer.Add(self.fullscreen_rssi, 0, wx.ALIGN_CENTER, 10)
+        rssi_h_sizer.AddStretchSpacer(1)
+        
+        last_seen_h_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        last_seen_h_sizer.AddStretchSpacer(1)
+        last_seen_h_sizer.Add(self.fullscreen_last_seen, 0, wx.ALIGN_CENTER, 10)
+        last_seen_h_sizer.AddStretchSpacer(1)
+        
+        # Add the horizontal sizers to the main fullscreen sizer
+        self.fullscreen_sizer.Add(rssi_h_sizer, 0, wx.EXPAND | wx.ALL, 10)
+        self.fullscreen_sizer.Add(last_seen_h_sizer, 0, wx.EXPAND | wx.ALL, 10)
+        
         self.fullscreen_sizer.AddStretchSpacer(1)
         
         self.fullscreen_panel.SetSizer(self.fullscreen_sizer)
