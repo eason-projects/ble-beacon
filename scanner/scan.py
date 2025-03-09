@@ -11,6 +11,7 @@ import json
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
 import datetime
+import configparser
 
 # Callback function for GUI updates - will be set by the GUI
 _gui_callback = None
@@ -24,9 +25,47 @@ def set_gui_callback(callback_func):
     print(f"DEBUG: Setting GUI callback: {callback_func}")
     _gui_callback = callback_func
 
+# Load configuration from file
+def load_config():
+    """Load configuration from ~/.ble/config.conf or create with defaults if it doesn't exist."""
+    config = configparser.ConfigParser()
+    
+    # Default configuration
+    config['kafka'] = {
+        'broker': 'localhost:9092',
+        'topic': 'ble_beacons'
+    }
+    
+    # Create config directory if it doesn't exist
+    config_dir = os.path.expanduser("~/.ble")
+    os.makedirs(config_dir, exist_ok=True)
+    
+    config_file = os.path.join(config_dir, "config.conf")
+    
+    # If config file exists, read it
+    if os.path.exists(config_file):
+        try:
+            config.read(config_file)
+            print(f"DEBUG: Loaded configuration from {config_file}")
+        except Exception as e:
+            print(f"DEBUG: Error reading config file: {e}")
+    else:
+        # Create default config file
+        try:
+            with open(config_file, 'w') as f:
+                config.write(f)
+            print(f"DEBUG: Created default configuration at {config_file}")
+        except Exception as e:
+            print(f"DEBUG: Error creating config file: {e}")
+    
+    return config
+
+# Load configuration
+config = load_config()
+
 # Kafka configuration
-KAFKA_BROKER = os.environ.get('KAFKA_BROKER', 'localhost:9092')
-KAFKA_TOPIC = os.environ.get('KAFKA_TOPIC', 'ble_beacons')
+KAFKA_BROKER = os.environ.get('KAFKA_BROKER', config['kafka']['broker'])
+KAFKA_TOPIC = os.environ.get('KAFKA_TOPIC', config['kafka']['topic'])
 
 def create_kafka_producer():
     """Create a Kafka producer with error handling."""
@@ -277,8 +316,23 @@ async def scan_ble_devices():
 def stop_scanning():
     """Stop the BLE scanning process."""
     global _scanning_active
-    print("DEBUG: Stopping BLE scanning")
+    print("DEBUG: Stopping scanning")
     _scanning_active = False
+
+def reload_config():
+    """Reload configuration from file."""
+    global KAFKA_BROKER, KAFKA_TOPIC, config
+    
+    # Reload configuration
+    config = load_config()
+    
+    # Update global variables
+    KAFKA_BROKER = os.environ.get('KAFKA_BROKER', config['kafka']['broker'])
+    KAFKA_TOPIC = os.environ.get('KAFKA_TOPIC', config['kafka']['topic'])
+    
+    print(f"DEBUG: Reloaded configuration - Kafka broker: {KAFKA_BROKER}, topic: {KAFKA_TOPIC}")
+    
+    return config
 
 if __name__ == "__main__":
     asyncio.run(scan_ble_devices())

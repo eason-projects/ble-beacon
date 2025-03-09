@@ -16,6 +16,7 @@ import queue
 import wx
 import wx.lib.scrolledpanel as scrolled
 from datetime import datetime
+import configparser
 from rssi_display_frame import RSSIDisplayFrame
 
 # Set up logging to a file in the user's Documents folder
@@ -102,6 +103,109 @@ class RedirectText:
         """Flush the stream."""
         pass
 
+# Configuration dialog class
+class ConfigDialog(wx.Dialog):
+    """Dialog for editing application configuration."""
+    
+    def __init__(self, parent, title="Configuration"):
+        super(ConfigDialog, self).__init__(parent, title=title, size=(400, 300))
+        
+        # Load current configuration
+        self.config = self.load_config()
+        
+        # Create the dialog layout
+        panel = wx.Panel(self)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        # Kafka settings section
+        kafka_box = wx.StaticBox(panel, label="Kafka Settings")
+        kafka_sizer = wx.StaticBoxSizer(kafka_box, wx.VERTICAL)
+        
+        # Kafka broker
+        broker_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        broker_label = wx.StaticText(panel, label="Kafka Broker:")
+        self.broker_input = wx.TextCtrl(panel, value=self.config['kafka']['broker'])
+        broker_sizer.Add(broker_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        broker_sizer.Add(self.broker_input, 1, wx.EXPAND)
+        kafka_sizer.Add(broker_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        # Kafka topic
+        topic_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        topic_label = wx.StaticText(panel, label="Kafka Topic:")
+        self.topic_input = wx.TextCtrl(panel, value=self.config['kafka']['topic'])
+        topic_sizer.Add(topic_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        topic_sizer.Add(self.topic_input, 1, wx.EXPAND)
+        kafka_sizer.Add(topic_sizer, 0, wx.EXPAND | wx.ALL, 5)
+        
+        main_sizer.Add(kafka_sizer, 0, wx.EXPAND | wx.ALL, 10)
+        
+        # Buttons
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        save_button = wx.Button(panel, wx.ID_OK, "Save")
+        cancel_button = wx.Button(panel, wx.ID_CANCEL, "Cancel")
+        button_sizer.Add(save_button, 0, wx.RIGHT, 10)
+        button_sizer.Add(cancel_button, 0)
+        main_sizer.Add(button_sizer, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+        
+        panel.SetSizer(main_sizer)
+        
+        # Bind events
+        self.Bind(wx.EVT_BUTTON, self.on_save, id=wx.ID_OK)
+    
+    def load_config(self):
+        """Load configuration from file."""
+        config = configparser.ConfigParser()
+        
+        # Default configuration
+        config['kafka'] = {
+            'broker': 'localhost:9092',
+            'topic': 'ble_beacons'
+        }
+        
+        # Create config directory if it doesn't exist
+        config_dir = os.path.expanduser("~/.ble")
+        os.makedirs(config_dir, exist_ok=True)
+        
+        config_file = os.path.join(config_dir, "config.conf")
+        
+        # If config file exists, read it
+        if os.path.exists(config_file):
+            try:
+                config.read(config_file)
+            except Exception as e:
+                logging.error(f"Error reading config file: {e}")
+        
+        return config
+    
+    def save_config(self):
+        """Save configuration to file."""
+        # Update config with values from inputs
+        self.config['kafka']['broker'] = self.broker_input.GetValue()
+        self.config['kafka']['topic'] = self.topic_input.GetValue()
+        
+        # Save to file
+        config_file = os.path.join(os.path.expanduser("~/.ble"), "config.conf")
+        try:
+            with open(config_file, 'w') as f:
+                self.config.write(f)
+            logging.info(f"Configuration saved to {config_file}")
+            return True
+        except Exception as e:
+            logging.error(f"Error saving config file: {e}")
+            return False
+    
+    def on_save(self, event):
+        """Handle save button click."""
+        if self.save_config():
+            # Show success message
+            wx.MessageBox("Configuration saved successfully. Changes will take effect after restarting the application.",
+                         "Configuration Saved", wx.OK | wx.ICON_INFORMATION)
+            self.EndModal(wx.ID_OK)
+        else:
+            # Show error message
+            wx.MessageBox("Failed to save configuration. Please check logs for details.",
+                         "Error", wx.OK | wx.ICON_ERROR)
+
 class BLEScannerApp(wx.App):
     """Main GUI application for BLE Scanner."""
     def OnInit(self):
@@ -118,6 +222,23 @@ class BLEScannerFrame(wx.Frame):
         self.scanning = False
         self.beacon_data = {}
         self.rssi_display = None
+        
+        # Create menu bar
+        menubar = wx.MenuBar()
+        
+        # File menu
+        file_menu = wx.Menu()
+        config_item = file_menu.Append(wx.ID_PREFERENCES, "Configuration", "Edit application configuration")
+        file_menu.AppendSeparator()
+        exit_item = file_menu.Append(wx.ID_EXIT, "Exit", "Exit the application")
+        menubar.Append(file_menu, "File")
+        
+        # Set the menu bar
+        self.SetMenuBar(menubar)
+        
+        # Bind menu events
+        self.Bind(wx.EVT_MENU, self.on_config, config_item)
+        self.Bind(wx.EVT_MENU, self.on_closing, exit_item)
         
         # Create a panel for the main content
         self.panel = wx.Panel(self)
@@ -228,6 +349,16 @@ class BLEScannerFrame(wx.Frame):
             self.start_button.Disable()
             self.stop_button.Enable()
             self.status.SetLabel("Scanning...")
+            
+            # Reload configuration before starting
+            try:
+                import scan
+                scan.reload_config()
+                print("Configuration reloaded")
+            except Exception as e:
+                print(f"Error reloading configuration: {e}")
+                import traceback
+                traceback.print_exc()
             
             # Start the scanner in a separate thread
             self.scanner_thread = threading.Thread(target=self.run_scanner)
@@ -411,6 +542,16 @@ class BLEScannerFrame(wx.Frame):
         
         # Destroy the window
         self.Destroy()
+
+    def on_config(self, event):
+        """Open the configuration dialog."""
+        dialog = ConfigDialog(self)
+        dialog.ShowModal()
+        dialog.Destroy()
+    
+    def on_exit(self, event):
+        """Exit the application."""
+        self.Close()
 
 def main():
     """Main function to run the BLE scanner GUI."""
