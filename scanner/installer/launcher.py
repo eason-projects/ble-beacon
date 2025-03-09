@@ -340,6 +340,16 @@ class BLEScannerFrame(wx.Frame):
             self.scanning = False
             print("Stopping scanner...")
             self.status.SetLabel("Stopping...")
+            
+            # Call the stop_scanning function in the scan module
+            try:
+                import scan
+                scan.stop_scanning()
+            except Exception as e:
+                print(f"Error stopping scanner: {e}")
+                import traceback
+                traceback.print_exc()
+            
             # The scanner thread will detect self.scanning is False and exit
     
     def run_scanner(self):

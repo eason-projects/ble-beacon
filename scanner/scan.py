@@ -15,6 +15,9 @@ import datetime
 # Callback function for GUI updates - will be set by the GUI
 _gui_callback = None
 
+# Add a global variable to control scanning
+_scanning_active = False
+
 def set_gui_callback(callback_func):
     """Set the callback function for GUI updates."""
     global _gui_callback
@@ -129,15 +132,25 @@ async def scan_ble_devices():
     # Counter for logging
     scan_count = 0
     
+    # Flag to check if scanning should continue
+    # This will be checked by the GUI thread
+    global _scanning_active
+    _scanning_active = True
+    
     try:
         print("DEBUG: Starting continuous scan loop")
-        while True:
+        while _scanning_active:
             scan_count += 1
             print(f"DEBUG: Starting scan #{scan_count}")
             
             # Scan for devices
             devices = await BleakScanner.discover(timeout=1.0)
             print(f"DEBUG: Found {len(devices)} devices in scan #{scan_count}")
+            
+            # Check if scanning should stop
+            if not _scanning_active:
+                print("DEBUG: Scanning stopped by user")
+                break
             
             # Process each device
             beacons_found = 0
@@ -259,6 +272,13 @@ async def scan_ble_devices():
         if producer:
             producer.close()
             print("DEBUG: Kafka producer closed")
+
+# Add a function to stop scanning
+def stop_scanning():
+    """Stop the BLE scanning process."""
+    global _scanning_active
+    print("DEBUG: Stopping BLE scanning")
+    _scanning_active = False
 
 if __name__ == "__main__":
     asyncio.run(scan_ble_devices())
