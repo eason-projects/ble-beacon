@@ -376,8 +376,8 @@ class RSSIDisplayFrame(wx.Frame):
         # -30 or better -> 1.0 (best)
         # -100 or worse -> 0.0 (worst)
         
-        min_rssi = -100  # Worst signal
-        max_rssi = -30   # Best signal
+        min_rssi = -100  # Worst signal (near red)
+        max_rssi = -30   # Best signal (near blue)
         
         # Clamp RSSI value to our range
         clamped_rssi = max(min(self.current_rssi, max_rssi), min_rssi)
@@ -386,11 +386,31 @@ class RSSIDisplayFrame(wx.Frame):
         normalized = (clamped_rssi - min_rssi) / (max_rssi - min_rssi)
         
         # Use HSV color space for smooth transitions
-        # Hue: 0 (red) for worst signal, through yellow, green, cyan, blue, to 240 (purple) for best signal
-        # This gives a much smoother transition through the color spectrum
-        hue = normalized * 240  # 0 to 240 degrees in HSV (red to purple)
-        saturation = 1.0        # Full saturation
-        value = 1.0             # Full brightness
+        # For the color wheel: purple (270°) -> red (0°/360°) -> yellow (60°) -> green (120°) -> blue (240°) -> purple (270°)
+        
+        # Map normalized value to hue:
+        # 0.0 (-100 dBm, worst) -> 300° (purple/magenta)
+        # 0.1                   -> 0° (red)
+        # 0.3                   -> 60° (yellow)
+        # 0.5                   -> 120° (green)
+        # 0.7                   -> 180° (cyan)
+        # 0.9                   -> 240° (blue)
+        # 1.0 (-30 dBm, best)   -> 270° (purple)
+        
+        # Create a circular color map that starts and ends with purple
+        if normalized < 0.1:
+            # Map 0.0-0.1 to 300°-0° (purple to red)
+            hue = 300 - (normalized * 10) * 300
+        elif normalized > 0.9:
+            # Map 0.9-1.0 to 240°-270° (blue to purple)
+            hue = 240 + ((normalized - 0.9) * 10) * 30
+        else:
+            # Map 0.1-0.9 to 0°-240° (red to blue)
+            adjusted = (normalized - 0.1) / 0.8  # Rescale to 0.0-1.0
+            hue = adjusted * 240
+        
+        saturation = 1.0  # Full saturation
+        value = 1.0       # Full brightness
         
         # Convert HSV to RGB
         # Algorithm from https://en.wikipedia.org/wiki/HSL_and_HSV#HSV_to_RGB
