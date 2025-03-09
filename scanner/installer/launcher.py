@@ -210,7 +210,9 @@ class BLEScannerFrame(wx.Frame):
     
     def update_log(self, message):
         """Update the log text control."""
-        self.log_text.AppendText(message)
+        # Ensure the message ends with a newline character
+        if message is not None:
+            self.log_text.AppendText(message + "\n")
     
     def on_start_scanning(self, event):
         """Start BLE scanning."""

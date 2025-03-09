@@ -136,7 +136,7 @@ async def scan_ble_devices():
             print(f"DEBUG: Starting scan #{scan_count}")
             
             # Scan for devices
-            devices = await BleakScanner.discover(timeout=5.0)
+            devices = await BleakScanner.discover(timeout=1.0)
             print(f"DEBUG: Found {len(devices)} devices in scan #{scan_count}")
             
             # Process each device
@@ -246,7 +246,7 @@ async def scan_ble_devices():
             print(f"DEBUG: Scan #{scan_count} found {beacons_found} beacons")
             
             # Wait before next scan
-            await asyncio.sleep(2)
+            await asyncio.sleep(0)
     except asyncio.CancelledError:
         print("DEBUG: BLE scan was cancelled")
         raise
