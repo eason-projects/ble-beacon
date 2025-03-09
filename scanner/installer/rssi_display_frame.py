@@ -39,6 +39,21 @@ class RSSIDisplayFrame(wx.Frame):
         super(RSSIDisplayFrame, self).__init__(parent, title=title, size=(400, 300),
                                               style=wx.DEFAULT_FRAME_STYLE | wx.STAY_ON_TOP)
         
+        # Enable native macOS fullscreen support
+        if wx.Platform == "__WXMAC__":
+            self.EnableFullScreenView(True)
+            # Bind macOS fullscreen events
+            self.Bind(wx.EVT_MAXIMIZE, self.on_maximize)
+            self.Bind(wx.EVT_FULLSCREEN, self.on_fullscreen_change)
+            
+            # Add View menu with fullscreen option
+            menubar = wx.MenuBar()
+            view_menu = wx.Menu()
+            fullscreen_item = view_menu.Append(wx.ID_ANY, "Enter Full Screen\tCtrl+F", "Toggle fullscreen mode")
+            self.Bind(wx.EVT_MENU, self.on_toggle_fullscreen, fullscreen_item)
+            menubar.Append(view_menu, "View")
+            self.SetMenuBar(menubar)
+        
         self.parent = parent
         self.is_fullscreen = False
         self.selected_key = None
@@ -220,6 +235,10 @@ class RSSIDisplayFrame(wx.Frame):
         if key_code == wx.WXK_ESCAPE and self.is_fullscreen:
             print("ESC key pressed, exiting fullscreen mode")
             self.exit_fullscreen()
+        # Check for F11 key to toggle fullscreen (or Cmd+F on macOS)
+        elif key_code == wx.WXK_F11 or (wx.Platform == "__WXMAC__" and key_code == ord('F') and event.CmdDown()):
+            print("Fullscreen toggle key pressed")
+            self.on_toggle_fullscreen(event)
         else:
             event.Skip()
     
@@ -227,7 +246,12 @@ class RSSIDisplayFrame(wx.Frame):
         """Exit fullscreen mode."""
         if self.is_fullscreen:
             self.is_fullscreen = False
-            self.ShowFullScreen(False)
+            
+            # Exit fullscreen mode
+            if wx.Platform == "__WXMAC__" and hasattr(self, "ShowFullScreen"):
+                self.ShowFullScreen(False, style=wx.FULLSCREEN_ALL)
+            else:
+                self.ShowFullScreen(False)
             
             # Switch from fullscreen panel to normal controls
             self.fullscreen_panel.Hide()
@@ -254,7 +278,12 @@ class RSSIDisplayFrame(wx.Frame):
                     child.Hide()
             
             self.fullscreen_panel.Show()
-            self.ShowFullScreen(True)
+            
+            # Use native macOS fullscreen if available, otherwise use wxPython's ShowFullScreen
+            if wx.Platform == "__WXMAC__" and hasattr(self, "ShowFullScreen"):
+                self.ShowFullScreen(True, style=wx.FULLSCREEN_ALL)
+            else:
+                self.ShowFullScreen(True)
             
             # Update the background color
             self.update_background_color()
@@ -479,3 +508,45 @@ class RSSIDisplayFrame(wx.Frame):
             if key == selected_key:
                 self.device_choice.SetSelection(index)
                 self.selected_key = key 
+
+    def on_maximize(self, event):
+        """Handle macOS maximize event."""
+        self.adjust_font_size()
+        self.panel.Layout()
+        event.Skip() 
+
+    def on_fullscreen_change(self, event):
+        """Handle macOS fullscreen change event."""
+        is_fullscreen = event.IsFullScreen()
+        
+        if is_fullscreen and not self.is_fullscreen:
+            # Entering fullscreen
+            self.is_fullscreen = True
+            
+            # Hide normal controls and show fullscreen panel
+            for child in self.panel.GetChildren():
+                if child != self.fullscreen_panel:
+                    child.Hide()
+            
+            self.fullscreen_panel.Show()
+            
+            # Update the background color
+            self.update_background_color()
+            
+        elif not is_fullscreen and self.is_fullscreen:
+            # Exiting fullscreen
+            self.is_fullscreen = False
+            
+            # Switch from fullscreen panel to normal controls
+            self.fullscreen_panel.Hide()
+            
+            # Show all normal controls
+            for child in self.panel.GetChildren():
+                if child != self.fullscreen_panel and not child.IsShown():
+                    child.Show()
+        
+        # Adjust the font size for the new window size
+        self.adjust_font_size()
+        self.panel.Layout()
+        
+        event.Skip() 
