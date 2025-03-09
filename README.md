@@ -1,102 +1,131 @@
-# Bluetooth Beacon and BLE Scanner for macOS
+# BLE Beacon System
 
-This repository contains Python programs that use PyObjC to listen for Bluetooth Low Energy (BLE) advertisements on macOS systems, including iBeacons, Eddystone beacons, and other BLE devices.
+A comprehensive Bluetooth Low Energy (BLE) beacon system that includes components for both transmitting and receiving beacon signals, with Kafka integration for data processing.
 
-## Programs Included
+## Project Overview
 
-1. **iBeacon Listener (`pyobjc.py`)** - Specifically designed to detect and monitor iBeacon signals.
-2. **BLE Scanner (`ble_scanner.py`)** - A more advanced scanner that can detect any type of BLE advertisement, including iBeacons, Eddystone beacons, and other BLE devices.
+This project consists of three main components:
 
-## Requirements
+1. **BLE Scanner** - A Python application that scans for BLE beacons and sends the data to Kafka
+2. **Kafka Setup** - A Docker Compose configuration for setting up a Kafka environment
+3. **BLE Beacon Transmitter** - An Android application that broadcasts BLE beacons
 
-- macOS (tested on macOS 14 Sonoma)
-- Python 3.6 or higher
-- PyObjC package and related frameworks
+## Components
 
-## Installation
+### 1. BLE Scanner (`/scanner`)
 
-1. Make sure you have Python 3 installed on your system:
-   ```bash
-   python3 --version
-   ```
+A Python application that scans for Bluetooth Low Energy (BLE) beacons and sends the data to a Kafka topic.
 
-2. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+#### Features
+- Detects multiple beacon formats (iBeacon, Eddystone, AltBeacon)
+- Sends beacon data to Kafka in JSON format
+- Includes a simple GUI for visualization
 
-## iBeacon Listener (`pyobjc.py`)
+#### Requirements
+- Python 3.7+
+- Required packages: bleak, kafka-python, Pillow, wxPython
 
-### Features
-
-- Detects iBeacon signals in the vicinity
-- Displays detailed information about each detected beacon:
-  - UUID
-  - Major and Minor values
-  - RSSI (signal strength)
-  - Proximity (Immediate, Near, Far)
-  - Estimated accuracy in meters
-- Monitors for common iBeacon UUIDs used by various manufacturers
-
-### Usage
-
+#### Usage
 ```bash
-python3 pyobjc.py
+cd scanner
+pip install -r requirements.txt
+python scan.py
 ```
 
-For more details, see [BEACON_README.md](BEACON_README.md).
+For more details, see the [Scanner README](scanner/README.md).
 
-## BLE Scanner (`ble_scanner.py`)
+### 2. Kafka Setup (`/kafka`)
 
-### Features
+A Docker Compose configuration for setting up a simple Kafka environment with the following components:
+- Kafka broker (running in KRaft mode without Zookeeper)
+- Kafka UI (web interface for managing Kafka)
 
-- Detects any BLE advertisement signals in the vicinity
-- Identifies and parses different beacon formats:
-  - iBeacon (Apple's beacon format)
-  - Eddystone (Google's beacon format) including UID, URL, TLM, and EID frame types
-- Displays detailed information about each detected device:
-  - Device ID and name
-  - RSSI (signal strength)
-  - Manufacturer data
-  - Service UUIDs
-  - Service data
-  - TX power level
-  - Connectable status
-  - And more...
+#### Requirements
+- Docker and Docker Compose
 
-### Usage
-
+#### Usage
 ```bash
-python3 ble_scanner.py
+cd kafka
+docker-compose up -d
 ```
 
-For more details, see [BLE_README.md](BLE_README.md).
+Access the Kafka UI at http://localhost:8080
 
-## Permissions
+For more details, see the [Kafka README](kafka/README.md).
 
-Both programs require:
-- Bluetooth access permission
-- For the iBeacon Listener, location permissions are also required
+### 3. BLE Beacon Transmitter (`/blluetoothbeacon`)
 
-On macOS, you'll be prompted to grant these permissions when the programs are first run.
+An Android application that broadcasts Bluetooth Low Energy (BLE) beacons that can be used for location testing.
 
-## How to Choose Which Program to Use
+#### Features
+- Broadcasts iBeacon format BLE advertisements
+- Configurable UUID, Major, Minor, and TX Power values
+- Adjustable transmission power levels and advertising modes
+- Simple user interface to start/stop beacon transmission
 
-- Use **iBeacon Listener** (`pyobjc.py`) if you're specifically interested in iBeacons and want detailed proximity information.
-- Use **BLE Scanner** (`ble_scanner.py`) if you want to detect all types of BLE advertisements, including but not limited to iBeacons.
+#### Requirements
+- Android device with Bluetooth Low Energy support
+- Android SDK 34 or higher
+- Bluetooth and Location permissions
+
+For more details, see the [BLE Beacon Transmitter README](blluetoothbeacon/README.md).
+
+## System Architecture
+
+The system works as follows:
+
+1. The Android app broadcasts BLE beacon signals
+2. The Python scanner detects these signals and other BLE beacons in the vicinity
+3. The scanner sends the beacon data to Kafka
+4. Kafka stores the data and makes it available for further processing
+
+This architecture allows for real-time tracking and analysis of BLE beacon data.
+
+## Getting Started
+
+### Prerequisites
+- Python 3.7+
+- Docker and Docker Compose
+- Android Studio (for building the Android app)
+
+### Setup Steps
+
+1. Start the Kafka environment:
+```bash
+cd kafka
+docker-compose up -d
+```
+
+2. Run the BLE scanner:
+```bash
+cd scanner
+pip install -r requirements.txt
+python scan.py
+```
+
+3. Build and install the Android app:
+```bash
+cd blluetoothbeacon
+./gradlew installDebug
+```
+
+## Data Format
+
+The beacon data sent to Kafka is in JSON format with structures specific to each beacon type (iBeacon, Eddystone, AltBeacon). See the [Scanner README](scanner/README.md) for detailed format specifications.
 
 ## Troubleshooting
 
-- **No devices detected**: Make sure Bluetooth is enabled on your Mac and that there are BLE devices broadcasting in your vicinity.
-- **Permission errors**: Ensure you've granted the necessary permissions for Bluetooth and Location services.
-- **Import errors**: Make sure PyObjC and related frameworks are properly installed with `pip install -r requirements.txt`.
+### Scanner Issues
+- If you encounter Carbon Framework errors on newer macOS versions, see the troubleshooting section in the [Scanner README](scanner/README.md).
 
-## Limitations
+### Kafka Issues
+- For Kafka connection issues, see the troubleshooting section in the [Kafka README](kafka/README.md).
 
-- Detection range is limited by Bluetooth hardware capabilities (typically 10-50 meters).
-- The programs must be running in the foreground to detect devices.
-- Some manufacturer-specific data formats may not be fully decoded.
+### Android App Issues
+- For "Data Too Large" errors or other beacon transmission issues, see the troubleshooting section in the [BLE Beacon Transmitter README](blluetoothbeacon/README.md).
 
 ## License
 
-This project is open source and available under the MIT License. 
+This project is open source for non-commercial use only. Commercial use of this project or any of its components requires explicit permission from the author. You are free to use, modify, and distribute this software for personal, educational, research, or other non-commercial purposes, provided appropriate attribution is given.
+
+For commercial licensing inquiries, please contact the author.

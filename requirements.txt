@@ -1,5 +1,0 @@
-pyobjc>=9.0.1
-pyobjc-core>=9.0.1
-pyobjc-framework-Cocoa>=9.0.1
-pyobjc-framework-CoreBluetooth>=9.0.1
-pyobjc-framework-CoreLocation>=9.0.1
