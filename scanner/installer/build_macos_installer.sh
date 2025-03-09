@@ -27,11 +27,9 @@ echo -e "${GREEN}Building BLE Kafka Scanner macOS Universal Installer${NC}"
 echo -e "${YELLOW}Activating virtual environment...${NC}"
 source venv/bin/activate
 
-# Check if py2app is installed
-if ! pip show py2app > /dev/null; then
-    echo -e "${YELLOW}Installing py2app...${NC}"
-    pip install py2app
-fi
+# Check if py2app is installed and update to latest version
+echo -e "${YELLOW}Installing/updating py2app to latest version...${NC}"
+pip install --upgrade py2app
 
 # Check if create-dmg is installed
 if ! command -v create-dmg &> /dev/null && [ "$SKIP_DMG" = false ]; then
@@ -114,7 +112,7 @@ pip install -r ../requirements.txt
 
 # Build the app using py2app with universal2 architecture
 echo -e "${YELLOW}Building the universal app with py2app...${NC}"
-python ble_kafka_setup.py py2app --arch=universal2
+python ble_kafka_setup.py py2app --arch=universal2 --no-strip
 
 if [ "$SKIP_DMG" = false ]; then
     # Create DMG

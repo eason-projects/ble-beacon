@@ -97,4 +97,38 @@ If you encounter issues connecting to Kafka:
 
 1. Ensure Kafka is running: `docker ps | grep broker`
 2. Check Kafka logs: `docker logs broker`
-3. Verify network connectivity: `telnet localhost 9092` 
+3. Verify network connectivity: `telnet localhost 9092`
+
+## Compatibility Issues
+
+### Carbon Framework Error
+
+If you encounter the following error when running the application on newer macOS versions:
+
+```
+OSError: dlopen(/System/Library/Carbon.framework/Carbon, 0x0006): tried: '/System/Library/Carbon.framework/Carbon' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/System/Library/Carbon.framework/Carbon' (no such file), '/System/Library/Carbon.framework/Carbon' (no such file, not in dyld cache)
+```
+
+This is because the application is trying to use the Carbon framework, which is deprecated and may not be available on newer macOS versions, especially on Apple Silicon Macs.
+
+### Rebuilding the Application
+
+To fix this issue, you need to rebuild the application with the updated configuration:
+
+1. Clone the repository
+2. Navigate to the installer directory
+3. Run the following commands:
+
+```bash
+# Install dependencies
+./install_build_deps.sh
+
+# Build the application
+./build_macos_installer.sh
+```
+
+This will create a new DMG file in the root directory that should be compatible with newer macOS versions.
+
+### Technical Details
+
+The issue is related to the `argv_emulation` option in py2app, which depends on the Carbon framework. The updated configuration explicitly disables this option and adds additional settings to avoid Carbon framework dependency. 

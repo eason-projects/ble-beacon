@@ -12,7 +12,7 @@ DATA_FILES = [
 ]
 
 OPTIONS = {
-    'argv_emulation': False,  # Changed from True to False to avoid Carbon framework dependency
+    'argv_emulation': False,  # Explicitly disable argv_emulation to avoid Carbon framework dependency
     'iconfile': 'app_icon.icns',  # You'll need to create this icon file
     'plist': {
         'CFBundleName': 'BLE Kafka Scanner',
@@ -48,7 +48,12 @@ OPTIONS = {
     ],
     'resources': [
         
-    ]
+    ],
+    # Add these options to avoid Carbon framework dependency
+    'frameworks': [],
+    'excludes': ['Carbon'],
+    'use_faulthandler': False,
+    'emulate_shell_environment': False
 }
 
 setup(
