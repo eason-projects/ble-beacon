@@ -16,6 +16,7 @@ import queue
 import wx
 import wx.lib.scrolledpanel as scrolled
 from datetime import datetime
+from rssi_display_frame import RSSIDisplayFrame
 
 # Set up logging to a file in the user's Documents folder
 log_dir = os.path.expanduser("~/Documents/BLE_Kafka_Scanner_Logs")
@@ -100,107 +101,6 @@ class RedirectText:
     def flush(self):
         """Flush the stream."""
         pass
-
-class RSSIDisplayFrame(wx.Frame):
-    """A frame to display RSSI and last seen time in large text."""
-    
-    def __init__(self, parent, title="RSSI Display"):
-        super(RSSIDisplayFrame, self).__init__(parent, title=title, size=(400, 300),
-                                              style=wx.DEFAULT_FRAME_STYLE | wx.STAY_ON_TOP)
-        
-        self.panel = wx.Panel(self)
-        main_sizer = wx.BoxSizer(wx.VERTICAL)
-        
-        # Device selection
-        device_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        device_label = wx.StaticText(self.panel, label="Select Device:")
-        self.device_choice = wx.Choice(self.panel, choices=[])
-        device_sizer.Add(device_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-        device_sizer.Add(self.device_choice, 1, wx.ALL, 5)
-        main_sizer.Add(device_sizer, 0, wx.EXPAND | wx.ALL, 5)
-        
-        # RSSI display
-        rssi_label = wx.StaticText(self.panel, label="RSSI:")
-        self.rssi_value = wx.StaticText(self.panel, label="N/A")
-        self.rssi_value.SetFont(wx.Font(60, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
-        main_sizer.Add(rssi_label, 0, wx.ALIGN_CENTER | wx.TOP, 10)
-        main_sizer.Add(self.rssi_value, 0, wx.ALIGN_CENTER | wx.ALL, 10)
-        
-        # Last seen display
-        last_seen_label = wx.StaticText(self.panel, label="Last Seen:")
-        self.last_seen_value = wx.StaticText(self.panel, label="N/A")
-        self.last_seen_value.SetFont(wx.Font(24, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
-        main_sizer.Add(last_seen_label, 0, wx.ALIGN_CENTER | wx.TOP, 10)
-        main_sizer.Add(self.last_seen_value, 0, wx.ALIGN_CENTER | wx.ALL, 10)
-        
-        self.panel.SetSizer(main_sizer)
-        self.Centre()
-        
-        # Bind device selection event
-        self.device_choice.Bind(wx.EVT_CHOICE, self.on_device_selected)
-        
-        # Set up a timer to update the display
-        self.timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.update_display, self.timer)
-        self.timer.Start(500)  # Update every 500ms
-        
-        # Bind the close event
-        self.Bind(wx.EVT_CLOSE, self.on_close)
-        
-        self.selected_key = None
-        self.parent = parent
-    
-    def on_close(self, event):
-        """Handle the window closing event."""
-        # Stop the timer
-        if self.timer.IsRunning():
-            self.timer.Stop()
-        
-        # Update the parent's reference to this window
-        if hasattr(self.parent, 'rssi_display'):
-            self.parent.rssi_display = None
-        
-        # Hide the window instead of destroying it
-        self.Hide()
-    
-    def on_device_selected(self, event):
-        """Handle device selection."""
-        selection = self.device_choice.GetSelection()
-        if selection != wx.NOT_FOUND:
-            self.selected_key = self.device_choice.GetClientData(selection)
-            self.update_display(None)
-    
-    def update_device_list(self, beacon_data):
-        """Update the device choice control with current beacons."""
-        current_selection = self.device_choice.GetSelection()
-        selected_key = None
-        if current_selection != wx.NOT_FOUND:
-            selected_key = self.device_choice.GetClientData(current_selection)
-        
-        self.device_choice.Clear()
-        
-        for key, data in beacon_data.items():
-            display_name = f"{data['type']} - "
-            if data['type'] == "iBeacon":
-                display_name += f"{data['uuid'][-8:]} ({data['major']}/{data['minor']})"
-            else:
-                display_name += f"{data.get('id', 'unknown')}"
-            
-            index = self.device_choice.Append(display_name, key)
-            
-            if key == selected_key:
-                self.device_choice.SetSelection(index)
-                self.selected_key = key
-    
-    def update_display(self, event):
-        """Update the RSSI and last seen display."""
-        if self.selected_key and self.selected_key in self.parent.beacon_data:
-            data = self.parent.beacon_data[self.selected_key]
-            self.rssi_value.SetLabel(str(data.get('rssi', 'N/A')))
-            self.last_seen_value.SetLabel(data.get('last_seen', 'N/A'))
-        else:
-            self.rssi_value.SetLabel("N/A")
-            self.last_seen_value.SetLabel("N/A")
 
 class BLEScannerApp(wx.App):
     """Main GUI application for BLE Scanner."""
@@ -518,7 +418,7 @@ def main():
     setup_paths()
     
     # Create the GUI
-    app = BLEScannerApp(False)
+    app = BLEScannerApp()
     app.MainLoop()
 
 if __name__ == "__main__":
