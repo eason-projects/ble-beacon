@@ -44,6 +44,22 @@ else
     echo -e "${GREEN}ImageMagick is already installed.${NC}"
 fi
 
+# Create and activate a virtual environment
+VENV_DIR="../venv"
+if [ ! -d "$VENV_DIR" ]; then
+    echo -e "${YELLOW}Creating Python virtual environment...${NC}"
+    python3 -m venv "$VENV_DIR"
+else
+    echo -e "${GREEN}Virtual environment already exists.${NC}"
+fi
+
+echo -e "${YELLOW}Activating virtual environment...${NC}"
+source "$VENV_DIR/bin/activate"
+
+# Upgrade pip in the virtual environment
+echo -e "${YELLOW}Upgrading pip...${NC}"
+pip install --upgrade pip
+
 # Install Python dependencies
 echo -e "${YELLOW}Installing Python dependencies...${NC}"
 pip install -r ../requirements.txt
@@ -66,6 +82,7 @@ fi
 
 echo -e "${GREEN}All dependencies installed successfully!${NC}"
 echo -e "${YELLOW}You can now run ./build_macos_installer.sh to build the installer.${NC}"
+echo -e "${YELLOW}Note: Remember to activate the virtual environment with 'source ../venv/bin/activate' when working on this project.${NC}"
 
 # Move back to the original directory
 cd - > /dev/null 
