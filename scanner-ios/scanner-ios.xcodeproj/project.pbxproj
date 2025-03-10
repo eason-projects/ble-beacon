@@ -10,9 +10,22 @@
 		9B918E112D7EF73300C25BA0 /* scanner-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "scanner-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		9B84D4102D7F0A570041D9D1 /* Exceptions for "scanner-ios" folder in "scanner-ios" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 9B918E102D7EF73300C25BA0 /* scanner-ios */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9B918E132D7EF73300C25BA0 /* scanner-ios */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9B84D4102D7F0A570041D9D1 /* Exceptions for "scanner-ios" folder in "scanner-ios" target */,
+			);
 			path = "scanner-ios";
 			sourceTree = "<group>";
 		};
@@ -254,7 +267,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"scanner-ios/Preview Content\"";
 				DEVELOPMENT_TEAM = K4HC8H82NU;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "scanner-ios/Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -284,7 +298,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"scanner-ios/Preview Content\"";
 				DEVELOPMENT_TEAM = K4HC8H82NU;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "scanner-ios/Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
