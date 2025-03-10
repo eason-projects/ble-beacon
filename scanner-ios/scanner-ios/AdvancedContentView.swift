@@ -146,7 +146,7 @@ struct iBeaconRow: View {
         VStack(alignment: .leading, spacing: 4) {
             // Header with UUID and proximity
             HStack {
-                Text(beacon.uuid.uuidString.prefix(4) + "...")
+                Text("\(beacon.major)/\(beacon.minor)")
                     .font(.headline)
                     .foregroundColor(isScanning ? .primary : .secondary)
 
