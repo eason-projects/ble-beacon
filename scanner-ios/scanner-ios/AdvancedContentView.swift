@@ -59,13 +59,13 @@ struct AdvancedContentView: View {
                             .padding(.bottom, 4)
 
                         Text(
-                            "This app uses CoreLocation to scan for iBeacons, which provides more accurate and reliable detection than generic BLE scanning."
+                            "This app scans for nearby iBeacons using Apple's CoreLocation framework for precise and reliable detection."
                         )
                         .font(.caption)
                         .foregroundColor(.secondary)
 
                         Text(
-                            "Note: Only iBeacon scanning is supported with CoreLocation. For other beacon types, a different approach would be needed."
+                            "Press the Start Scan button above to begin searching for iBeacons in your vicinity."
                         )
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -79,7 +79,7 @@ struct AdvancedContentView: View {
                 // List of beacons
                 List {
                     ForEach(scanner.beacons) { beacon in
-                        iBeaconRow(beacon: beacon)
+                        iBeaconRow(beacon: beacon, isScanning: scanner.isScanning)
                     }
                 }
                 .listStyle(PlainListStyle())
@@ -140,13 +140,15 @@ struct AdvancedContentView: View {
 // Row view for an iBeacon
 struct iBeaconRow: View {
     let beacon: GenericBeacon
-
+    let isScanning: Bool
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             // Header with UUID and proximity
             HStack {
                 Text(beacon.uuid.uuidString.prefix(4) + "...")
                     .font(.headline)
+                    .foregroundColor(isScanning ? .primary : .secondary)
 
                 Spacer()
 
@@ -155,8 +157,8 @@ struct iBeaconRow: View {
                     .font(.caption)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
-                    .background(proximityColor(beacon.proximity).opacity(0.2))
-                    .foregroundColor(proximityColor(beacon.proximity))
+                    .background(proximityColor(beacon.proximity).opacity(isScanning ? 0.2 : 0.1))
+                    .foregroundColor(proximityColor(beacon.proximity).opacity(isScanning ? 1.0 : 0.6))
                     .cornerRadius(8)
 
                 // RSSI indicator
@@ -164,7 +166,7 @@ struct iBeaconRow: View {
                     Image(systemName: rssiIcon(beacon.rssi))
                     Text("\(beacon.rssi) dBm")
                 }
-                .foregroundColor(rssiColor(beacon.rssi))
+                .foregroundColor(isScanning ? rssiColor(beacon.rssi) : .gray)
             }
 
             // Divider
@@ -190,6 +192,7 @@ struct iBeaconRow: View {
                 .foregroundColor(.secondary)
         }
         .padding(.vertical, 4)
+        .opacity(isScanning ? 1.0 : 0.8)
     }
 
     // Helper function to determine color based on RSSI
