@@ -79,7 +79,9 @@ struct AdvancedContentView: View {
                 // List of beacons
                 List {
                     ForEach(scanner.beacons) { beacon in
-                        iBeaconRow(beacon: beacon, isScanning: scanner.isScanning)
+                        NavigationLink(destination: BeaconDetailView(beacon: beacon)) {
+                            iBeaconRow(beacon: beacon, isScanning: scanner.isScanning)
+                        }
                     }
                 }
                 .listStyle(PlainListStyle())
@@ -190,6 +192,18 @@ struct iBeaconRow: View {
             Text("Last seen: \(formattedTimestamp(beacon.timestamp))")
                 .font(.caption2)
                 .foregroundColor(.secondary)
+                
+            // // Tap for details hint
+            // HStack {
+            //     Spacer()
+            //     Text("Tap for signal chart")
+            //         .font(.caption2)
+            //         .foregroundColor(.blue)
+            //         .padding(.top, 4)
+            //     Image(systemName: "chevron.right")
+            //         .font(.caption2)
+            //         .foregroundColor(.blue)
+            // }
         }
         .padding(.vertical, 4)
         .opacity(isScanning ? 1.0 : 0.8)
