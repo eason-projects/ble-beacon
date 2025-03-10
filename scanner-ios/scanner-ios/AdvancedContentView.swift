@@ -4,6 +4,8 @@ import SwiftUI
 struct AdvancedContentView: View {
     // Get the scanner from the environment
     @EnvironmentObject private var scanner: AdvancedBeaconScanner
+    @State private var selectedBeacon: UUID? = nil
+    @State private var selectedBeaconDetails: GenericBeacon? = nil
 
     var body: some View {
         NavigationView {
@@ -79,8 +81,38 @@ struct AdvancedContentView: View {
                 // List of beacons
                 List {
                     ForEach(scanner.beacons) { beacon in
-                        NavigationLink(destination: BeaconDetailView(beacon: beacon)) {
+                        ZStack {
+                            // Hidden navigation link that's only active when this beacon is selected
+                            NavigationLink(
+                                destination: selectedBeaconDetails.map { details in
+                                    // Use ID-based equality to prevent recreation of the view
+                                    BeaconDetailView(beacon: details)
+                                        .id(details.id) // Use stable ID to maintain view identity
+                                },
+                                isActive: Binding(
+                                    get: { selectedBeacon == beacon.id },
+                                    set: { 
+                                        if $0 { 
+                                            selectedBeacon = beacon.id
+                                            // Store the beacon details when selected
+                                            selectedBeaconDetails = beacon
+                                        }
+                                    }
+                                )
+                            ) {
+                                EmptyView()
+                            }
+                            .opacity(0)
+                            
                             iBeaconRow(beacon: beacon, isScanning: scanner.isScanning)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    // Only update if selecting a different beacon
+                                    if selectedBeacon != beacon.id {
+                                        selectedBeacon = beacon.id
+                                        selectedBeaconDetails = beacon
+                                    }
+                                }
                         }
                     }
                 }
@@ -235,7 +267,7 @@ struct iBeaconRow: View {
     private func proximityText(_ proximity: CLProximity) -> String {
         switch proximity {
         case .immediate:
-            return "Immediate"
+            return "Here"
         case .near:
             return "Near"
         case .far:

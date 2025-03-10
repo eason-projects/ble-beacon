@@ -13,7 +13,7 @@ enum BeaconType: String, CaseIterable {
 }
 
 // Generic beacon model to store information for all beacon types
-struct GenericBeacon: Identifiable {
+struct GenericBeacon: Identifiable, Hashable {
     let id = UUID()
     let type: BeaconType
     let uuid: UUID
@@ -23,6 +23,20 @@ struct GenericBeacon: Identifiable {
     let accuracy: Double
     let proximity: CLProximity
     let timestamp: Date
+    
+    // Hashable conformance
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(uuid)
+        hasher.combine(major)
+        hasher.combine(minor)
+    }
+    
+    // Equatable conformance
+    static func == (lhs: GenericBeacon, rhs: GenericBeacon) -> Bool {
+        return lhs.uuid == rhs.uuid && 
+               lhs.major == rhs.major && 
+               lhs.minor == rhs.minor
+    }
 
     // Create from CLBeacon
     init(from beacon: CLBeacon) {

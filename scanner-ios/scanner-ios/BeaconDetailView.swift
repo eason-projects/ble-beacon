@@ -2,19 +2,17 @@ import SwiftUI
 import Charts
 import CoreLocation
 
-// Data point for RSSI history
-struct RSSIDataPoint: Identifiable {
-    let id = UUID()
-    let timestamp: Date
-    let rssi: Int
-}
-
 // Detail view for a selected beacon
-struct BeaconDetailView: View {
+struct BeaconDetailView: View, Equatable {
     let beacon: GenericBeacon
     @EnvironmentObject private var scanner: AdvancedBeaconScanner
     @State private var rssiHistory: [RSSIDataPoint] = []
     @State private var timer: Timer? = nil
+    
+    // Implement Equatable to prevent unnecessary view updates
+    static func == (lhs: BeaconDetailView, rhs: BeaconDetailView) -> Bool {
+        return lhs.beacon.id == rhs.beacon.id
+    }
     
     var body: some View {
         ScrollView {
@@ -56,67 +54,7 @@ struct BeaconDetailView: View {
                 .padding(.horizontal)
                 
                 // Signal strength chart
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Signal Strength History")
-                        .font(.headline)
-                        .padding(.horizontal)
-                    
-                    if rssiHistory.isEmpty {
-                        Text("No data available yet")
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding()
-                    } else {
-                        Chart {
-                            ForEach(rssiHistory) { dataPoint in
-                                LineMark(
-                                    x: .value("Time", dataPoint.timestamp),
-                                    y: .value("RSSI", dataPoint.rssi)
-                                )
-                                .foregroundStyle(chartLineColor())
-                                .interpolationMethod(.catmullRom)
-                                
-                                AreaMark(
-                                    x: .value("Time", dataPoint.timestamp),
-                                    y: .value("RSSI", dataPoint.rssi)
-                                )
-                                .foregroundStyle(
-                                    .linearGradient(
-                                        colors: [chartLineColor().opacity(0.3), chartLineColor().opacity(0.0)],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                                .interpolationMethod(.catmullRom)
-                                
-                                // Add point markers for each signal received
-                                PointMark(
-                                    x: .value("Time", dataPoint.timestamp),
-                                    y: .value("RSSI", dataPoint.rssi)
-                                )
-                                .foregroundStyle(chartLineColor())
-                                .symbolSize(50)
-                            }
-                        }
-                        .chartYScale(domain: [-100, -20])
-                        .chartYAxis {
-                            AxisMarks(position: .leading)
-                        }
-                        .frame(height: 200)
-                        .padding()
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(12)
-                        .padding(.horizontal)
-                    }
-                    
-                    // Chart legend
-                    HStack(spacing: 16) {
-                        LegendItem(color: .green, label: "Strong (> -50 dBm)")
-                        LegendItem(color: .yellow, label: "Medium (> -70 dBm)")
-                        LegendItem(color: .red, label: "Weak (< -70 dBm)")
-                    }
-                    .padding(.horizontal)
-                }
+                ChartContainer(rssiHistory: rssiHistory, chartLineColor: chartLineColor())
             }
             .padding(.vertical)
         }
@@ -139,12 +77,15 @@ struct BeaconDetailView: View {
         // Set up timer to collect data every second
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             // Only add new data if we're scanning
-            if scanner.isScanning {
-                rssiHistory.append(RSSIDataPoint(timestamp: Date(), rssi: getCurrentRSSI()))
-                
-                // Limit history to last 60 seconds
-                if rssiHistory.count > 60 {
-                    rssiHistory.removeFirst(rssiHistory.count - 60)
+            if self.scanner.isScanning {
+                // Use DispatchQueue.main.async to batch UI updates
+                DispatchQueue.main.async {
+                    self.rssiHistory.append(RSSIDataPoint(timestamp: Date(), rssi: self.getCurrentRSSI()))
+                    
+                    // Limit history to last 60 seconds
+                    if self.rssiHistory.count > 60 {
+                        self.rssiHistory.removeFirst(self.rssiHistory.count - 60)
+                    }
                 }
             }
         }
@@ -260,24 +201,6 @@ struct DetailRow: View {
     }
 }
 
-// Legend item component
-struct LegendItem: View {
-    let color: Color
-    let label: String
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(color)
-                .frame(width: 8, height: 8)
-            
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
 #Preview {
     // For preview only, we'll use a placeholder
     struct PreviewPlaceholder: View {
@@ -356,4 +279,4 @@ struct LegendItem: View {
     return NavigationView {
         PreviewPlaceholder()
     }
-} 
+}
